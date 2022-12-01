@@ -5,13 +5,13 @@ services:
     depends_on:
       - db
     volumes:
-      - ./secrets.sh:/home/secrets.sh
+      - ./code:/code
   db:
     image: influxdb:2.5.1
     ports:
       - "8086:8086"
     volumes:
-      - ./db_data:/var/lib/influxdb2
+      - D:/datasets/MAL_datacollection/db_data:/var/lib/influxdb2
   grafana:
     image: grafana/grafana
     depends_on:
@@ -19,4 +19,4 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - ./grafana-storage:/var/lib/grafana
+      - D:/datasets/MAL_datacollection/grafana-storage:/var/lib/grafana

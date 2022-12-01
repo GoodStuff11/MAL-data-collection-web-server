@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /home
+cd /code
 source secrets.sh
 clientid=${clientid//$'\r'} # remove escape character that may show up
 token=${token//$'\r'}
