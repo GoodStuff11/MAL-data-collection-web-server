@@ -1,0 +1,4 @@
+secrets.sh
+db_data/
+data/
+grafana-storage/
