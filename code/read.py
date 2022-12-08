@@ -4,6 +4,7 @@ from typing import Optional, Union
 
 import numpy as np
 import pandas as pd
+import pytz
 import requests
 
 """
@@ -43,6 +44,7 @@ class MALAPI:
             "media_type",
             "source",
             "studios",
+            "broadcast",
         ]
         url = f"https://api.myanimelist.net/v2/anime/{id}?fields={','.join(fields)}"
         header = {'X-MAL-CLIENT-ID': self.client_id}
@@ -103,6 +105,29 @@ class MALAPI:
 
     def task(self, id):
         response = self.get_anime_info(id)
+
+        week_days = {
+            "monday": 0,
+            "tuesday": 1,
+            "wednesday": 2,
+            "thursday": 3,
+            "friday": 4,
+            "saturday": 5,
+            "sunday": 6,
+        }
+        try:
+            now = datetime.now().astimezone(tz=pytz.timezone('Asia/Tokyo'))
+            time_of_airing = now + timedelta(
+                days=(week_days[response['broadcast']['day_of_the_week']] - now.weekday()) % 7
+            )
+            airing_time = datetime.strptime(response['broadcast']['start_time'], "%H:%M")
+            time_of_airing = time_of_airing.replace(hour=airing_time.hour, minute=airing_time.minute, second=0)
+            recent_new_episode = (now + timedelta(hours=1.5) > time_of_airing) and (response['status'] == 'currently_airing')
+        except KeyError:
+            recent_new_episode = False
+            
+        # print(response['broadcast']['day_of_the_week'])
+        # print(time_of_airing)
         return {
             'title': response['title'],
             'score': response.get('mean'),
@@ -118,6 +143,7 @@ class MALAPI:
             'num_dropped': int(response['statistics']['status']['dropped']),
             'num_plan_to_watch': int(response['statistics']['status']['completed']),
             'sequel': 'prequel' in [anime['relation_type'] for anime in response['related_anime']],
+            'recent_new_episode': recent_new_episode,
         }
 
     def get_all_anime_info(self, id_list):
@@ -138,9 +164,11 @@ if __name__ == '__main__':
     client_id = args.client_id
 
     api = MALAPI(client_id)
+    # print(api.get_anime_info(46654))
     timestamp = datetime.now()
     # print(api.get_current_season_shows())
     data = api.get_all_anime_info(api.get_current_season_shows())
+    # print(data)
     df = pd.DataFrame.from_records(data)
     # # columns = df.columns
     df['current_time'] = api.convert_to_iso(timestamp)
@@ -164,6 +192,7 @@ if __name__ == '__main__':
             'num_dropped': 'Int64',
             'num_plan_to_watch': 'Int64',
             'sequel': 'bool',
+            'recent_new_episode': 'bool',
             'current_time': 'string',
         }
     )
