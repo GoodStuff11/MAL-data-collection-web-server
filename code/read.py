@@ -118,14 +118,20 @@ class MALAPI:
         try:
             now = datetime.now().astimezone(tz=pytz.timezone('Asia/Tokyo'))
             time_of_airing = now + timedelta(
-                days=(week_days[response['broadcast']['day_of_the_week']] - now.weekday()) % 7
+                days=(week_days[response['broadcast']['day_of_the_week']] - now.weekday() + 3.5) % 7 - 3.5
             )
             airing_time = datetime.strptime(response['broadcast']['start_time'], "%H:%M")
-            time_of_airing = time_of_airing.replace(hour=airing_time.hour, minute=airing_time.minute, second=0)
-            recent_new_episode = (now + timedelta(hours=1.5) > time_of_airing) and (response['status'] == 'currently_airing')
+            time_of_airing = time_of_airing.replace(
+                hour=airing_time.hour, minute=airing_time.minute, second=0
+            )
+            recent_new_episode = (
+                (now - timedelta(hours=1.5) < time_of_airing)
+                and (now >= time_of_airing)
+                and (response['status'] == 'currently_airing')
+            )
         except KeyError:
             recent_new_episode = False
-            
+
         # print(response['broadcast']['day_of_the_week'])
         # print(time_of_airing)
         return {
