@@ -147,7 +147,7 @@ class MALAPI:
             'num_watching': int(response['statistics']['status']['watching']),
             'num_completed': int(response['statistics']['status']['completed']),
             'num_dropped': int(response['statistics']['status']['dropped']),
-            'num_plan_to_watch': int(response['statistics']['status']['completed']),
+            'num_plan_to_watch': int(response['statistics']['status']['plan_to_watch']),
             'sequel': 'prequel' in [anime['relation_type'] for anime in response['related_anime']],
             'recent_new_episode': recent_new_episode,
         }

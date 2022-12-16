@@ -22,7 +22,7 @@ if __name__ == '__main__':
     data = """
             from(bucket: "currently-airing-anime")
                 |> range(start: -7d)
-                |> filter(fn: (r) => r["title"] == "Bocchi the Rock!")
+                |> filter(fn: (r) => r["title"] == "Blue Lock")
                 |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
                 |> drop (columns: ["_start","_stop"])
                 |> yield(name: "last")

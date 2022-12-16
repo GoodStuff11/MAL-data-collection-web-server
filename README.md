@@ -12,19 +12,27 @@ To setup grafana, login (your initial username and password is, admin admin resp
 
 ## Running web server remotely
 
-It is not required that the web server be run on your computer, requiring that your computer always be running. If some other computer is available (perferably linux so it's easier to setup) to act as a server, the web server can be implemented much more conviently.
+Having your computer running 24/7 isn't the only way to keep the server running. If some other computer is available (perferably linux so it's easier to setup) to act as a server, the web server can be implemented much more conviently.
 
-The first step is to set everything up on the server, including cloning this repository there and getting the proper secrets there as well. Then you can run `docker compose up -d` and the web server will be running. You can access the services on any computer in the local network by using the ip of the server (such as calling `http://172.1.1.12:3000`). It is also convenient to set this ip as a static ip address so it won't change if something goes wrong. 
+The first step is to set everything up on the server, including cloning this repository there and getting the proper secrets there as well. Then you can run `docker compose up -d` and the web server will be running. You can access the services of your server on any computer in the local network by using the ip of the server (for example, calling `http://172.1.1.12:3000`, where in this case port 3000 would correspond to influxdb). It is also convenient to set this ip as a static ip address so it won't change.
 
-It is also possible to communicate to the server in another network. There are multiple ways of doing this
+It is also possible to communicate to the server in another network. In my case, I used ssh to communicate. The setup is as follows:
 
-1. Using SSH
-    1. Install OpenSSH server on the server
-    2. Give the server a static ip address (optional but convenient)
-    3. Setup the proper port fowarding to allow ssh
-2. Use VPN server to make VPN tunnel (I think also requires port forwarding)
-3. Setup port forwarding directly to grafana and influxdb (rather unsafe, so make sure your password is good)
-4. Using [tor](https://www.home-assistant.io/blog/2017/11/12/tor/)
+1. Install openssh-server on server
+    - At this point you can call `ssh <user>@<server-ip>` to connect to the server while on the local network. 
+    - When logging in you will be prompted for a password, and you will then be logged in. This is insecure since you are able to guess the password.
+2. Configure the `/etc/ssh/sshd_config` (server settings) and `/etc/ssh/ssh_config` (client settings) to properly configure the ssh server. Here you will be able to remove passwords but DO NOT do this yet. However, you can customize many things here to make your server more secure.
+3. In order to remove the need for passwords, you need to setup passwordless login, which involves setting up an ssh key pair. 
+    - call `ssh-keygen`, and save the key pair to whatever file you want (id_rsa by default).
+    - transfer the public key (with `.pub` extension) to the server. This can be done with ssh (since you can access with a password) by using a special command (`ssh-copy-id`) or doing it manually. You can also send the public key over by having another user which has ssh authentication do the above approach or by physically logging into the computer.
+    - the public key will need to be put in `~/ssh/authorized_keys`
+    - you will also need to setup a ssh client on the client computer.
+    - If you did everything right, then attempting to login with ssh will not ask you for a password even when the password is enabled.
+4. Configure the ssh server to not use passwords. This will make the ssh server much more secure.
+5. Setup port forwarding using the router admin interface to forward some selected port to port 22 (corresponds to ssh) of the server's ip. This step should not be done before passwords are turned off so that there is no way for an intruder to login by guessing your password.
+    - Now you can access the server from anywhere by using ssh. You can use the following command `ssh -p <port> <user>@<public-ip-of-server-network> -L 3000:<server-ip>:3000 -L 8086:<server-ip>:8086`
+    - The `-L` in the command sets up port forwarding using ssh. This makes it so that you can access the interfaces on the remote computer using `localhost:3000` or `localhost:8086`. This port forwarding also means that you can query and add data to the influxdb database from outside the server if desired.
+6. The public ip is able to change, but it's not easy to make the public ip static. However, you are able to track the public ip using a ddns. For example, you can use something like duckdns to convert the above command to the following: `ssh -p <port> <user>@<domain>.duckdns.org -L 3000:<server-ip>:3000 -L 8086:<server-ip>:8086`
 
 ## How it works
 
