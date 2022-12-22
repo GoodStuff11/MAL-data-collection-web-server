@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytz
 import requests
+from dateutil.parser import parse
 
 """
 historical_MAL_collector
@@ -90,14 +91,16 @@ class MALAPI:
             start_date = None
             end_date = None
             try:
-                start_date = datetime.strptime(show['start_date'], r"%Y-%m-%d")
-                end_date = datetime.strptime(show['end_date'], r"%Y-%m-%d")
+                start_date = parse(show['start_date'])
+                end_date = parse(show['end_date'])
             except (ValueError, KeyError):
                 pass
-
+            
+            days_before_airing = 7
+            days_after_finishing = 14
             if show['status'] == 'currently_airing' or (
-                (end_date and end_date + timedelta(days=7) > timestamp)
-                and (start_date and start_date - timedelta(days=14) < timestamp)
+                (end_date and end_date + timedelta(days=days_before_airing) > timestamp)
+                and (start_date and start_date - timedelta(days=days_after_finishing) < timestamp)
             ):
                 id_set.add(show['id'])
 
@@ -116,7 +119,8 @@ class MALAPI:
             "sunday": 6,
         }
         try:
-            now = datetime.now().astimezone(tz=pytz.timezone('Asia/Tokyo'))
+            japan_tz = pytz.timezone('Asia/Tokyo')
+            now = datetime.now().astimezone(tz=japan_tz)
             time_of_airing = now + timedelta(
                 days=(week_days[response['broadcast']['day_of_the_week']] - now.weekday() + 3.5) % 7 - 3.5
             )
@@ -124,10 +128,14 @@ class MALAPI:
             time_of_airing = time_of_airing.replace(
                 hour=airing_time.hour, minute=airing_time.minute, second=0
             )
+            # new episode if the time of airing is close to now and the show is airing (edge cases added for
+            # first and last episode)
             recent_new_episode = (
                 (now - timedelta(hours=1.5) < time_of_airing)
                 and (now >= time_of_airing)
-                and (response['status'] == 'currently_airing')
+                and (response['status'] == 'currently_airing' or 
+                     (now >= parse(response['start_date']).replace(tzinfo=japan_tz) and
+                      now <= parse(response['end_date']).replace(tzinfo=japan_tz) + timedelta(days=1)))
             )
         except KeyError:
             recent_new_episode = False
